@@ -14,3 +14,6 @@ target/
 
 # Logs
 *.log
+
+# Config source (repo git separado, lido pelo config-server)
+config-repo/
