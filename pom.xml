@@ -24,9 +24,9 @@
         <module>config-server</module>
         <module>catalog-service</module>
         <module>auth-service</module>
+        <module>api-gateway</module>
 
         <!--
-        <module>api-gateway</module>
         <module>order-service</module>
         <module>payment-service</module>
         <module>inventory-service</module>
