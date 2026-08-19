@@ -9,8 +9,8 @@ Plataforma de pedidos baseada em microservices, em construção. Projeto de estu
 | `discovery-service` | 8761 | ✅ | Eureka — registro e descoberta |
 | `config-server` | 8888 | ✅ | Spring Cloud Config (lê o `config-repo/`) |
 | `catalog-service` | 8082 | ✅ | Catálogo — produtos e categorias |
-| `api-gateway` | — | 🚧 | não implementado |
-| `auth-service` | — | 🚧 | não implementado |
+| `auth-service` | 8081 | ✅ | Autenticação — registro, login e refresh (JWT) |
+| `api-gateway` | 8080 | ✅ | Borda única — roteamento, JWT e rate limit |
 | `order-service` | — | 🚧 | não implementado |
 | `payment-service` | — | 🚧 | não implementado |
 | `inventory-service` | — | 🚧 | não implementado |
@@ -45,7 +45,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    docker compose up -d
    ```
 
-   Na primeira subida, o `infra/postgres/init.sql` cria o banco `catalog` automaticamente.
+   Na primeira subida, o `infra/postgres/init.sql` cria os bancos `catalog` e `auth` automaticamente.
 
 3. Suba os serviços (cada um em um terminal):
 
@@ -53,6 +53,8 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    mvn -pl discovery-service spring-boot:run
    mvn -pl config-server spring-boot:run
    mvn -pl catalog-service spring-boot:run
+   mvn -pl auth-service spring-boot:run
+   mvn -pl api-gateway spring-boot:run
    ```
 
 ## catalog-service
@@ -74,6 +76,35 @@ Endpoints:
 Detalhes: schema versionado com Flyway; locking otimista com `@Version`; validação via Bean Validation.
 
 > **Nota (Fedora/SELinux):** o mount do `init.sql` usa a flag `:z`. Todo bind-mount de arquivo/pasta neste host precisa de `:z` (ou `:Z`), senão o container acusa `Permission denied`.
+
+## auth-service
+
+Dono do domínio de autenticação. Emite e valida JWT (access + refresh) e guarda o refresh token no Redis.
+
+| Banco | Uso |
+|---|---|
+| Postgres `auth` | usuários (`users`) — senha hasheada com BCrypt |
+| Redis | refresh tokens (`refresh:*` com TTL) |
+
+Endpoints:
+
+- `POST /auth/register` — cria usuário e devolve access + refresh
+- `POST /auth/login` — autentica e devolve access + refresh
+- `POST /auth/refresh` — rotaciona o refresh token
+
+Detalhes: access token com TTL de 15 min, refresh de 7 dias; senha via BCrypt.
+
+## api-gateway
+
+Borda única da plataforma (Spring Cloud Gateway, reativo). Roteia por `lb://` via Eureka e valida o JWT antes de liberar a rota.
+
+| Rota | Destino |
+|---|---|
+| `/auth/**` | auth-service (pública) |
+| `/products/**`, `/categories/**` | catalog-service |
+| `/orders/**` | order-service (pendente) |
+
+Detalhes: o `JwtAuthFilter` valida o `Authorization: Bearer` e injeta `X-User-Id` para os serviços internos; o `RequestRateLimiter` limita por IP via Redis. Todo caminho fora de `/auth/**` exige token (401 caso contrário).
 
 ## Verificação
 
