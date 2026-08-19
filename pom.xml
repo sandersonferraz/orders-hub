@@ -18,7 +18,6 @@
     <name>orders-hub</name>
     <description>OrdersHub — plataforma de pedidos (microservices)</description>
 
-    <!-- Um serviço por vez: adicione o <module> ao criar cada diretório -->
     <modules>
         <module>discovery-service</module>
         <module>config-server</module>
@@ -28,10 +27,7 @@
         <module>order-service</module>
         <module>payment-service</module>
         <module>inventory-service</module>
-
-        <!--
         <module>notification-service</module>
-        -->
     </modules>
 
     <properties>

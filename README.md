@@ -14,7 +14,7 @@ Plataforma de pedidos baseada em microservices, em construção. Projeto de estu
 | `order-service` | 8083 | ✅ | Pedidos — criação com outbox e Kafka |
 | `payment-service` | 8084 | ✅ | Pagamentos — consumidor Kafka + DLT, Pagar.me |
 | `inventory-service` | 8085 | ✅ | Estoque — reserva de produtos via Kafka |
-| `notification-service` | — | 🚧 | não implementado |
+| `notification-service` | 8086 | ✅ | Notificações — persiste eventos em Mongo |
 
 ## Infra (docker-compose)
 
@@ -58,6 +58,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    mvn -pl order-service spring-boot:run
    mvn -pl payment-service spring-boot:run
    mvn -pl inventory-service spring-boot:run
+   mvn -pl notification-service spring-boot:run
    ```
 
 > **Nota (config-server):** o `config-repo/` é um repositório git separado (gitignored pelo repo principal). Numa clonagem nova, inicialize-o:
@@ -166,9 +167,25 @@ Fluxo (mensageria):
 
 Detalhes: o `productId` é propagado pelo evento (`OrderCreatedEvent` → `PaymentApprovedEvent`); schema versionado com Flyway (`V1` tabela, `V2` seed `product_id=1`).
 
+## notification-service
+
+Dono do domínio de notificações. Consome os eventos dos demais serviços e persiste uma notificação para cada um (sem envio real — é o registro do que aconteceu).
+
+| Banco | Uso |
+|---|---|
+| Mongo `notifications` | notificações (`notifications`) — uma por evento |
+
+Fluxo (mensageria):
+
+- Consome `orders.events` → notificação `ORDER_CREATED` (grupo `notification-service`)
+- Consome `payments.events` → notificação `PAYMENT_EVENT`
+- Consome `inventory.events` → notificação `INVENTORY_EVENT`
+
+Detalhes: cada notificação guarda `orderId`, `type` e o `payload` original do evento (JSON); `orderId` extraído do payload quando presente.
+
 ## Swagger e Actuator
 
-**Swagger (springdoc-openapi)** nos 5 serviços de negócio — UI em `/swagger-ui.html`, spec em `/v3/api-docs`:
+**Swagger (springdoc-openapi)** nos 6 serviços de negócio — UI em `/swagger-ui.html`, spec em `/v3/api-docs`:
 
 | Serviço | URL |
 |---|---|
@@ -177,6 +194,7 @@ Detalhes: o `productId` é propagado pelo evento (`OrderCreatedEvent` → `Payme
 | payment-service | http://localhost:8084/swagger-ui.html |
 | auth-service | http://localhost:8081/swagger-ui.html (exige JWT — botão "Authorize") |
 | inventory-service | http://localhost:8085/swagger-ui.html (sem endpoints REST — spec vazia) |
+| notification-service | http://localhost:8086/swagger-ui.html (sem endpoints REST — spec vazia) |
 
 **Actuator** em todos os módulos — `/actuator/health`, `/actuator/info`, `/actuator/metrics` (o `config-server` também expõe `/actuator/refresh`). No `auth-service`, o actuator também exige JWT.
 
