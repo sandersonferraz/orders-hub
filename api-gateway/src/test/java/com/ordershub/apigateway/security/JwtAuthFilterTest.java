@@ -67,7 +67,7 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void filter_devePermitirCaminhoPublico() {
+    void shouldAllowPublicPath() {
         when(path.value()).thenReturn("/auth/login");
 
         filter.filter(exchange, chain).block();
@@ -77,7 +77,7 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void filter_deveRetornar401SemAuthorization() {
+    void shouldReturn401WithoutAuthorization() {
         when(path.value()).thenReturn("/products");
         when(request.getHeaders()).thenReturn(new HttpHeaders());
 
@@ -89,7 +89,7 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void filter_deveRetornar401ComTokenInvalido() {
+    void shouldReturn401WithInvalidToken() {
         when(path.value()).thenReturn("/products");
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer token-invalido");
@@ -102,7 +102,7 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void filter_deveInjetarXUserIdComTokenValido() {
+    void shouldInjectXUserIdWithValidToken() {
         when(path.value()).thenReturn("/products");
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + validToken(123L));
@@ -124,7 +124,7 @@ class JwtAuthFilterTest {
     }
 
     @Test
-    void getOrder_deveRetornarMenosUm() {
+    void shouldReturnMinusOne() {
         assertThat(filter.getOrder()).isEqualTo(-1);
     }
 }

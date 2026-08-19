@@ -34,7 +34,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void create_deveSalvarTokenComTtl() {
+    void shouldSaveTokenWithTtl() {
         String token = service.create(1L);
 
         assertThat(token).isNotBlank();
@@ -42,7 +42,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void validateAndRotate_deveRetornarUserIdEDeletarToken() {
+    void shouldReturnUserIdAndDeleteToken() {
         when(valueOps.get("refresh:abc")).thenReturn("42");
 
         Long userId = service.validateAndRotate("abc");
@@ -52,7 +52,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void validateAndRotate_deveLancarExcecaoQuandoTokenNaoExiste() {
+    void shouldThrowExceptionWhenTokenDoesNotExist() {
         when(valueOps.get("refresh:abc")).thenReturn(null);
 
         assertThatThrownBy(() -> service.validateAndRotate("abc"))

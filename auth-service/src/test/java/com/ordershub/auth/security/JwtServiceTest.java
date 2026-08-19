@@ -16,7 +16,7 @@ class JwtServiceTest {
             Duration.ofMinutes(15));
 
     @Test
-    void generate_parse_deveFazerRoundtripDeSubjectEUserId() {
+    void shouldRoundtripSubjectAndUserId() {
         String token = jwt.generate(1L, "user@example.com");
 
         Claims claims = jwt.parse(token);
@@ -26,13 +26,13 @@ class JwtServiceTest {
     }
 
     @Test
-    void parse_deveLancarJwtExceptionComTokenInvalido() {
+    void shouldThrowJwtExceptionWithInvalidToken() {
         assertThatThrownBy(() -> jwt.parse("token-invalido"))
                 .isInstanceOf(JwtException.class);
     }
 
     @Test
-    void generate_deveProduzirTokenAssinadoENaoVazio() {
+    void shouldProduceSignedNonEmptyToken() {
         String token = jwt.generate(2L, "outro@example.com");
 
         assertThat(token).isNotBlank();

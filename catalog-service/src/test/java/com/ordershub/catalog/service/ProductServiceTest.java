@@ -39,12 +39,12 @@ class ProductServiceTest {
     }
 
     private Product product(String name) {
-        return new Product(name, "descrição", new BigDecimal("199.90"), 1L);
+        return new Product(name, "description", new BigDecimal("199.90"), 1L);
     }
 
     @Test
-    void findById_deveRetornarProduto() {
-        Product product = product("Teclado");
+    void shouldReturnProduct() {
+        Product product = product("Keyboard");
         when(repository.findById(1L)).thenReturn(Optional.of(product));
 
         Product result = service.findById(1L);
@@ -53,7 +53,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void findById_deveLancarExcecaoQuandoNaoExiste() {
+    void shouldThrowExceptionWhenProductNotFound() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findById(99L))
@@ -61,15 +61,15 @@ class ProductServiceTest {
     }
 
     @Test
-    void findAll_deveRetornarLista() {
+    void shouldReturnList() {
         when(repository.findAll()).thenReturn(List.of(product("A"), product("B")));
 
         assertThat(service.findAll()).hasSize(2);
     }
 
     @Test
-    void create_deveSalvarEDevolverProduto() {
-        Product product = product("Novo");
+    void shouldSaveAndReturnProduct() {
+        Product product = product("New");
         when(repository.save(product)).thenReturn(product);
 
         Product result = service.create(product);
@@ -79,22 +79,22 @@ class ProductServiceTest {
     }
 
     @Test
-    void update_deveCopiarCamposESalvar() {
-        Product existing = product("Antigo");
-        Product changes = new Product("Novo", "nova descrição", new BigDecimal("99.00"), null);
+    void shouldCopyFieldsAndSave() {
+        Product existing = product("Old");
+        Product changes = new Product("New", "new description", new BigDecimal("99.00"), null);
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(existing);
 
         Product result = service.update(1L, changes);
 
-        assertThat(result.getName()).isEqualTo("Novo");
-        assertThat(result.getDescription()).isEqualTo("nova descrição");
+        assertThat(result.getName()).isEqualTo("New");
+        assertThat(result.getDescription()).isEqualTo("new description");
         assertThat(result.getPrice()).isEqualTo(new BigDecimal("99.00"));
         verify(repository).save(existing);
     }
 
     @Test
-    void update_deveLancarExcecaoQuandoProdutoNaoExiste() {
+    void shouldThrowExceptionWhenUpdatingNonexistentProduct() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.update(99L, product("X")))
@@ -102,19 +102,19 @@ class ProductServiceTest {
     }
 
     @Test
-    void delete_deveChamarDeleteById() {
+    void shouldCallDeleteById() {
         service.delete(1L);
 
         verify(repository).deleteById(1L);
     }
 
     @Test
-    void saveDetails_deveSalvarDetalhesDoProdutoExistente() {
+    void shouldSaveDetailsOfExistingProduct() {
         when(repository.findById(1L)).thenReturn(Optional.of(product("A")));
-        ProductDetails details = new ProductDetails("1", "longa descrição", new String[]{"gamer", "rgb"});
+        ProductDetails details = new ProductDetails("1", "long description", new String[]{"gamer", "rgb"});
         when(detailsRepository.save(any(ProductDetails.class))).thenReturn(details);
 
-        ProductDetails result = service.saveDetails(1L, "longa descrição", new String[]{"gamer", "rgb"});
+        ProductDetails result = service.saveDetails(1L, "long description", new String[]{"gamer", "rgb"});
 
         assertThat(result.getId()).isEqualTo("1");
         assertThat(result.getTags()).containsExactly("gamer", "rgb");
@@ -122,7 +122,7 @@ class ProductServiceTest {
     }
 
     @Test
-    void saveDetails_deveLancarExcecaoQuandoProdutoNaoExiste() {
+    void shouldThrowExceptionWhenSavingDetailsOfNonexistentProduct() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.saveDetails(99L, "x", new String[]{"a"}))
@@ -130,15 +130,15 @@ class ProductServiceTest {
     }
 
     @Test
-    void findDetails_deveRetornarDetalhes() {
-        ProductDetails details = new ProductDetails("1", "longa", new String[]{"a"});
+    void shouldReturnDetails() {
+        ProductDetails details = new ProductDetails("1", "long", new String[]{"a"});
         when(detailsRepository.findById("1")).thenReturn(Optional.of(details));
 
         assertThat(service.findDetails(1L)).isSameAs(details);
     }
 
     @Test
-    void findDetails_deveLancarExcecaoQuandoNaoExiste() {
+    void shouldThrowExceptionWhenDetailsNotFound() {
         when(detailsRepository.findById("99")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findDetails(99L))

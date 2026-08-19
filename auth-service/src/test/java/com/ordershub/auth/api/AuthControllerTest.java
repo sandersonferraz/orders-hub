@@ -44,47 +44,47 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_deveRetornarTokensComCredenciaisValidas() {
+    void shouldReturnTokensWithValidCredentials() {
         User user = new User("user@example.com", "hash");
         when(users.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(encoder.matches("senha", "hash")).thenReturn(true);
+        when(encoder.matches("password", "hash")).thenReturn(true);
         when(jwt.generate(any(), eq("user@example.com"))).thenReturn("access");
         when(refresh.create(any())).thenReturn("refresh");
 
-        var response = controller.login(new AuthController.LoginRequest("user@example.com", "senha"));
+        var response = controller.login(new AuthController.LoginRequest("user@example.com", "password"));
 
         assertThat(response.accessToken()).isEqualTo("access");
         assertThat(response.refreshToken()).isEqualTo("refresh");
     }
 
     @Test
-    void login_deveLancarBadCredentialsComSenhaErrada() {
+    void shouldThrowBadCredentialsWithWrongPassword() {
         User user = new User("user@example.com", "hash");
         when(users.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(encoder.matches("errada", "hash")).thenReturn(false);
+        when(encoder.matches("wrong", "hash")).thenReturn(false);
 
         assertThatThrownBy(() ->
-                controller.login(new AuthController.LoginRequest("user@example.com", "errada")))
+                controller.login(new AuthController.LoginRequest("user@example.com", "wrong")))
                 .isInstanceOf(BadCredentialsException.class);
     }
 
     @Test
-    void login_deveLancarBadCredentialsComEmailInexistente() {
+    void shouldThrowBadCredentialsWithNonexistentEmail() {
         when(users.findByEmail("x@example.com")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                controller.login(new AuthController.LoginRequest("x@example.com", "senha")))
+                controller.login(new AuthController.LoginRequest("x@example.com", "password")))
                 .isInstanceOf(BadCredentialsException.class);
     }
 
     @Test
-    void register_deveSalvarUsuarioERetornarTokens() {
-        when(encoder.encode("senha")).thenReturn("hash");
+    void shouldSaveUserAndReturnTokens() {
+        when(encoder.encode("password")).thenReturn("hash");
         when(users.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
         when(jwt.generate(any(), any())).thenReturn("access");
         when(refresh.create(any())).thenReturn("refresh");
 
-        var response = controller.register(new AuthController.RegisterRequest("user@example.com", "senha"));
+        var response = controller.register(new AuthController.RegisterRequest("user@example.com", "password"));
 
         assertThat(response.accessToken()).isEqualTo("access");
         assertThat(response.refreshToken()).isEqualTo("refresh");
@@ -92,7 +92,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void refresh_deveRetornarNovosTokens() {
+    void shouldReturnNewTokens() {
         User user = new User("user@example.com", "hash");
         when(refresh.validateAndRotate("rt")).thenReturn(1L);
         when(users.findById(1L)).thenReturn(Optional.of(user));
@@ -106,7 +106,7 @@ class AuthControllerTest {
     }
 
     @Test
-    void refresh_deveLancarBadCredentialsQuandoUsuarioNaoExiste() {
+    void shouldThrowBadCredentialsWhenUserDoesNotExist() {
         when(refresh.validateAndRotate("rt")).thenReturn(1L);
         when(users.findById(1L)).thenReturn(Optional.empty());
 

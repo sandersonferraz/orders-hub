@@ -23,7 +23,7 @@ class GatewayConfigTest {
     @Mock ServerHttpRequest request;
 
     @Test
-    void ipKeyResolver_deveRetornarIpDoRemoteAddress() throws Exception {
+    void shouldReturnIpFromRemoteAddress() throws Exception {
         when(exchange.getRequest()).thenReturn(request);
         InetAddress addr = InetAddress.getByAddress(new byte[]{10, 0, 0, 1});
         when(request.getRemoteAddress()).thenReturn(new InetSocketAddress(addr, 8080));
@@ -35,7 +35,7 @@ class GatewayConfigTest {
     }
 
     @Test
-    void ipKeyResolver_deveRetornarUnknownSemRemoteAddress() {
+    void shouldReturnUnknownWithoutRemoteAddress() {
         when(exchange.getRequest()).thenReturn(request);
         when(request.getRemoteAddress()).thenReturn(null);
 

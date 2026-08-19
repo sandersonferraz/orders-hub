@@ -31,15 +31,15 @@ class CategoryServiceTest {
     }
 
     @Test
-    void findById_deveRetornarCategoria() {
-        Category category = new Category("Periféricos");
+    void shouldReturnCategory() {
+        Category category = new Category("Peripherals");
         when(repository.findById(1L)).thenReturn(Optional.of(category));
 
         assertThat(service.findById(1L)).isSameAs(category);
     }
 
     @Test
-    void findById_deveLancarExcecaoQuandoNaoExiste() {
+    void shouldThrowExceptionWhenCategoryNotFound() {
         when(repository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.findById(99L))
@@ -47,15 +47,15 @@ class CategoryServiceTest {
     }
 
     @Test
-    void findAll_deveRetornarLista() {
+    void shouldReturnList() {
         when(repository.findAll()).thenReturn(List.of(new Category("A"), new Category("B")));
 
         assertThat(service.findAll()).hasSize(2);
     }
 
     @Test
-    void create_deveSalvarEDevolverCategoria() {
-        Category category = new Category("Nova");
+    void shouldSaveAndReturnCategory() {
+        Category category = new Category("New");
         when(repository.save(category)).thenReturn(category);
 
         assertThat(service.create(category)).isSameAs(category);
@@ -63,20 +63,20 @@ class CategoryServiceTest {
     }
 
     @Test
-    void update_deveCopiarNomeESalvar() {
-        Category existing = new Category("Antiga");
-        Category changes = new Category("Nova");
+    void shouldCopyNameAndSave() {
+        Category existing = new Category("Old");
+        Category changes = new Category("New");
         when(repository.findById(1L)).thenReturn(Optional.of(existing));
         when(repository.save(existing)).thenReturn(existing);
 
         Category result = service.update(1L, changes);
 
-        assertThat(result.getName()).isEqualTo("Nova");
+        assertThat(result.getName()).isEqualTo("New");
         verify(repository).save(existing);
     }
 
     @Test
-    void delete_deveChamarDeleteById() {
+    void shouldCallDeleteById() {
         service.delete(1L);
 
         verify(repository).deleteById(1L);
