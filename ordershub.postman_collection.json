@@ -1,0 +1,376 @@
+{
+  "info": {
+    "name": "OrdersHub",
+    "description": "Collection para testar toda a plataforma OrdersHub.\n\nComo usar:\n1. Suba a infra: `docker compose up -d`\n2. Suba os serviços (discovery, config, gateway, catalog, auth, order, payment, inventory, notification)\n3. Rode 1. Auth > Registrar (ou Login) — o token é salvo automaticamente nas variáveis da collection\n4. Depois rode Produtos/Categorias/Pedidos (usam {{accessToken}} automaticamente)\n\nFluxo da borda: tudo entra pelo api-gateway ({{baseUrl}} = http://localhost:8080).\nRotas públicas: apenas /auth/**.\nAs demais (/products, /categories, /orders) exigem JWT — o gateway valida e injeta X-User-Id.\n\nA pasta 'Saúde' usa as portas diretas dos serviços (o gateway não roteia /actuator).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "productId", "value": "1" },
+    { "key": "categoryId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Registrar usuário",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "var body = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@ordershub.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"teste@ordershub.com\",\n  \"password\": \"123456\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', function () { pm.response.to.have.status(200); });",
+                  "var body = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Produtos",
+      "item": [
+        {
+          "name": "Listar produtos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/products"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Criar produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "var b = pm.response.json();",
+                  "if (b && b.id) { pm.collectionVariables.set('productId', b.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teclado Mecânico\",\n  \"description\": \"Switch red, ABNT2\",\n  \"price\": 349.90,\n  \"categoryId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/products"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Buscar produto por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/products/{{productId}}"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Atualizar produto",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Teclado Mecânico RGB\",\n  \"description\": \"Switch red, ABNT2, RGB\",\n  \"price\": 399.90,\n  \"categoryId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/products/{{productId}}"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Ver detalhes (Mongo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/products/{{productId}}/details"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Salvar detalhes (Mongo)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"longDescription\": \"Teclado mecânico com switch red, keycaps PBT e iluminação RGB.\",\n  \"tags\": [\"teclado\", \"rgb\", \"mecanico\"]\n}"
+            },
+            "url": "{{baseUrl}}/products/{{productId}}/details"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Deletar produto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/products/{{productId}}"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Categorias",
+      "item": [
+        {
+          "name": "Listar categorias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/categories"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Criar categoria",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });",
+                  "var b = pm.response.json();",
+                  "if (b && b.id) { pm.collectionVariables.set('categoryId', b.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Periféricos\"\n}"
+            },
+            "url": "{{baseUrl}}/categories"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Buscar categoria por id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{categoryId}}"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Atualizar categoria",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Periféricos Gamer\"\n}"
+            },
+            "url": "{{baseUrl}}/categories/{{categoryId}}"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Deletar categoria",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/categories/{{categoryId}}"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Pedidos",
+      "item": [
+        {
+          "name": "Criar pedido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": 1,\n  \"customerId\": \"u-1\"\n}"
+            },
+            "url": "{{baseUrl}}/orders"
+          },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Saúde (Actuator — portas diretas)",
+      "item": [
+        {
+          "name": "Gateway (8080)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8080/actuator/health" }
+        },
+        {
+          "name": "Discovery / Eureka (8761)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8761/actuator/health" }
+        },
+        {
+          "name": "Config Server (8888)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8888/actuator/health" }
+        },
+        {
+          "name": "Catalog (8082)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8082/actuator/health" }
+        },
+        {
+          "name": "Auth (8081) — exige JWT",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8081/actuator/health" },
+          "auth": {
+            "type": "bearer",
+            "bearer": [ { "key": "token", "value": "{{accessToken}}", "type": "string" } ]
+          }
+        },
+        {
+          "name": "Order (8083)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8083/actuator/health" }
+        },
+        {
+          "name": "Payment (8084)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8084/actuator/health" }
+        },
+        {
+          "name": "Inventory (8085)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8085/actuator/health" }
+        },
+        {
+          "name": "Notification (8086)",
+          "request": { "method": "GET", "header": [], "url": "http://localhost:8086/actuator/health" }
+        }
+      ]
+    }
+  ]
+}
