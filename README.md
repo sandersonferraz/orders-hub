@@ -11,7 +11,7 @@ Plataforma de pedidos baseada em microservices, em construção. Projeto de estu
 | `catalog-service` | 8082 | ✅ | Catálogo — produtos e categorias |
 | `auth-service` | 8081 | ✅ | Autenticação — registro, login e refresh (JWT) |
 | `api-gateway` | 8080 | ✅ | Borda única — roteamento, JWT e rate limit |
-| `order-service` | — | 🚧 | não implementado |
+| `order-service` | 8083 | ✅ | Pedidos — criação com outbox e Kafka |
 | `payment-service` | — | 🚧 | não implementado |
 | `inventory-service` | — | 🚧 | não implementado |
 | `notification-service` | — | 🚧 | não implementado |
@@ -45,7 +45,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    docker compose up -d
    ```
 
-   Na primeira subida, o `infra/postgres/init.sql` cria os bancos `catalog` e `auth` automaticamente.
+   Na primeira subida, o `infra/postgres/init.sql` cria os bancos `catalog`, `auth` e `orders` automaticamente.
 
 3. Suba os serviços (cada um em um terminal):
 
@@ -55,6 +55,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    mvn -pl catalog-service spring-boot:run
    mvn -pl auth-service spring-boot:run
    mvn -pl api-gateway spring-boot:run
+   mvn -pl order-service spring-boot:run
    ```
 
 ## catalog-service
@@ -102,9 +103,23 @@ Borda única da plataforma (Spring Cloud Gateway, reativo). Roteia por `lb://` v
 |---|---|
 | `/auth/**` | auth-service (pública) |
 | `/products/**`, `/categories/**` | catalog-service |
-| `/orders/**` | order-service (pendente) |
+| `/orders/**` | order-service |
 
 Detalhes: o `JwtAuthFilter` valida o `Authorization: Bearer` e injeta `X-User-Id` para os serviços internos; o `RequestRateLimiter` limita por IP via Redis. Todo caminho fora de `/auth/**` exige token (401 caso contrário).
+
+## order-service
+
+Dono do domínio de pedidos. Cria o pedido consultando o catálogo (Feign + Circuit Breaker) e grava o evento no outbox para publicação assíncrona via Kafka.
+
+| Banco | Uso |
+|---|---|
+| Postgres `orders` | pedidos (`orders`) e outbox (`outbox_events`) |
+
+Endpoints:
+
+- `POST /orders` — cria um pedido (`{ "productId": 1, "customerId": "u-1" }`)
+
+Detalhes: o preço vem do `catalog-service` via `CatalogClient` (Feign) com Circuit Breaker `catalog` (fallback: preço ZERO); o evento `OrderCreated` é gravado em `outbox_events` na mesma transação do pedido e publicado pelo `OutboxPublisher` em `orders.events` (chave de partição = orderId).
 
 ## Verificação
 
