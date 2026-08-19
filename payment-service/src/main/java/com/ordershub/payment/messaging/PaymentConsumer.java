@@ -32,7 +32,7 @@ public class PaymentConsumer {
             OrderCreatedEvent event = mapper.readValue(payload, OrderCreatedEvent.class);
             var payment = service.process(event.orderId(), event.total(), "4000000000000010");
             String eventPayload = "APPROVED".equals(payment.getStatus())
-                    ? mapper.writeValueAsString(new PaymentApprovedEvent(event.orderId(), payment.getId().toString()))
+                    ? mapper.writeValueAsString(new PaymentApprovedEvent(event.orderId(), event.productId(), payment.getId().toString()))
                     : mapper.writeValueAsString(new PaymentRefusedEvent(event.orderId(), "card refused"));
             // chave = orderId
             kafka.send("payments.events", String.valueOf(event.orderId()), eventPayload);

@@ -1,0 +1,1 @@
+INSERT INTO stock_items (product_id, quantity) VALUES (1, 10);

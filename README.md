@@ -13,7 +13,7 @@ Plataforma de pedidos baseada em microservices, em construção. Projeto de estu
 | `api-gateway` | 8080 | ✅ | Borda única — roteamento, JWT e rate limit |
 | `order-service` | 8083 | ✅ | Pedidos — criação com outbox e Kafka |
 | `payment-service` | 8084 | ✅ | Pagamentos — consumidor Kafka + DLT, Pagar.me |
-| `inventory-service` | — | 🚧 | não implementado |
+| `inventory-service` | 8085 | ✅ | Estoque — reserva de produtos via Kafka |
 | `notification-service` | — | 🚧 | não implementado |
 
 ## Infra (docker-compose)
@@ -45,7 +45,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    docker compose up -d
    ```
 
-   Na primeira subida, o `infra/postgres/init.sql` cria os bancos `catalog`, `auth`, `orders` e `payments` automaticamente.
+   Na primeira subida, o `infra/postgres/init.sql` cria os bancos `catalog`, `auth`, `orders`, `payments` e `inventory` automaticamente.
 
 3. Suba os serviços (cada um em um terminal):
 
@@ -57,6 +57,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    mvn -pl api-gateway spring-boot:run
    mvn -pl order-service spring-boot:run
    mvn -pl payment-service spring-boot:run
+   mvn -pl inventory-service spring-boot:run
    ```
 
 > **Nota (config-server):** o `config-repo/` é um repositório git separado (gitignored pelo repo principal). Numa clonagem nova, inicialize-o:
@@ -149,9 +150,25 @@ Fluxo (mensageria):
 
 Detalhes: idempotência via `orderId` único em `payments`; integração Pagar.me via `RestClient` com `Authorization: Basic` (`PAGARME_API_KEY` no `.env`).
 
+## inventory-service
+
+Dono do domínio de estoque. Consome o evento de pagamento aprovado e dá baixa no estoque do produto.
+
+| Banco | Uso |
+|---|---|
+| Postgres `inventory` | estoque (`stock_items`) — locking otimista com `@Version` |
+
+Fluxo (mensageria):
+
+- Consome `payments.events` → `PaymentApprovedEvent` (grupo `inventory-service`)
+- Reserva uma unidade do produto (`stock_items.quantity - 1`); se sem estoque, emite `StockOutEvent`
+- Publica `inventory.events` → `StockReservedEvent` (chave = orderId)
+
+Detalhes: o `productId` é propagado pelo evento (`OrderCreatedEvent` → `PaymentApprovedEvent`); schema versionado com Flyway (`V1` tabela, `V2` seed `product_id=1`).
+
 ## Swagger e Actuator
 
-**Swagger (springdoc-openapi)** nos 4 serviços de negócio — UI em `/swagger-ui.html`, spec em `/v3/api-docs`:
+**Swagger (springdoc-openapi)** nos 5 serviços de negócio — UI em `/swagger-ui.html`, spec em `/v3/api-docs`:
 
 | Serviço | URL |
 |---|---|
@@ -159,6 +176,7 @@ Detalhes: idempotência via `orderId` único em `payments`; integração Pagar.m
 | order-service | http://localhost:8083/swagger-ui.html |
 | payment-service | http://localhost:8084/swagger-ui.html |
 | auth-service | http://localhost:8081/swagger-ui.html (exige JWT — botão "Authorize") |
+| inventory-service | http://localhost:8085/swagger-ui.html (sem endpoints REST — spec vazia) |
 
 **Actuator** em todos os módulos — `/actuator/health`, `/actuator/info`, `/actuator/metrics` (o `config-server` também expõe `/actuator/refresh`). No `auth-service`, o actuator também exige JWT.
 

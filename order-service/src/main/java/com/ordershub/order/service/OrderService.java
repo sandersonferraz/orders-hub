@@ -42,13 +42,13 @@ public class OrderService {
                 throwable -> new CatalogClient.ProductResponse(productId, "indisponível", BigDecimal.ZERO));
 
         Order order = orders.save(new Order(customerId, product.price(), "CREATED"));
-        saveOutboxEvent(order);
+        saveOutboxEvent(order, productId);
         return order;
     }
 
-    private void saveOutboxEvent(Order order) {
+    private void saveOutboxEvent(Order order, Long productId) {
         try {
-            OrderCreatedEvent event = new OrderCreatedEvent(order.getId(), order.getCustomerId(), order.getTotal());
+            OrderCreatedEvent event = new OrderCreatedEvent(order.getId(), productId, order.getCustomerId(), order.getTotal());
             outbox.save(new OutboxEvent("Order", order.getId(), "OrderCreated", mapper.writeValueAsString(event)));
         } catch (Exception e) {
             throw new IllegalStateException("Erro ao serializar evento", e);

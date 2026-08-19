@@ -42,15 +42,15 @@ class PaymentConsumerTest {
 
     @Test
     void shouldPublishApprovedEvent() throws Exception {
-        String payload = "{\"orderId\":1,\"customerId\":\"u-1\",\"total\":100.00}";
-        OrderCreatedEvent event = new OrderCreatedEvent(1L, "u-1", new BigDecimal("100.00"));
+        String payload = "{\"orderId\":1,\"productId\":1,\"customerId\":\"u-1\",\"total\":100.00}";
+        OrderCreatedEvent event = new OrderCreatedEvent(1L, 1L, "u-1", new BigDecimal("100.00"));
         when(mapper.readValue(payload, OrderCreatedEvent.class)).thenReturn(event);
 
         Payment payment = new Payment(1L, "APPROVED", new BigDecimal("100.00"));
         ReflectionTestUtils.setField(payment, "id", 42L);
         when(service.process(event.orderId(), event.total(), "4000000000000010")).thenReturn(payment);
 
-        String approvedJson = "{\"orderId\":1,\"paymentId\":\"42\"}";
+        String approvedJson = "{\"orderId\":1,\"productId\":1,\"paymentId\":\"42\"}";
         when(mapper.writeValueAsString(any(PaymentApprovedEvent.class))).thenReturn(approvedJson);
 
         consumer.onOrderCreated(payload);
@@ -60,8 +60,8 @@ class PaymentConsumerTest {
 
     @Test
     void shouldPublishRefusedEvent() throws Exception {
-        String payload = "{\"orderId\":1,\"customerId\":\"u-1\",\"total\":100.00}";
-        OrderCreatedEvent event = new OrderCreatedEvent(1L, "u-1", new BigDecimal("100.00"));
+        String payload = "{\"orderId\":1,\"productId\":1,\"customerId\":\"u-1\",\"total\":100.00}";
+        OrderCreatedEvent event = new OrderCreatedEvent(1L, 1L, "u-1", new BigDecimal("100.00"));
         when(mapper.readValue(payload, OrderCreatedEvent.class)).thenReturn(event);
 
         Payment payment = new Payment(1L, "REFUSED", new BigDecimal("100.00"));
