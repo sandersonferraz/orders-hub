@@ -5,7 +5,7 @@
 CREATE DATABASE catalog;
 CREATE DATABASE auth;
 CREATE DATABASE orders;
+CREATE DATABASE payments;
 
 -- Descomente quando os serviços forem criados:
--- CREATE DATABASE payment_db;
 -- CREATE DATABASE inventory_db;
