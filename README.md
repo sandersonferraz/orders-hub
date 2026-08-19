@@ -12,7 +12,7 @@ Plataforma de pedidos baseada em microservices, em construção. Projeto de estu
 | `auth-service` | 8081 | ✅ | Autenticação — registro, login e refresh (JWT) |
 | `api-gateway` | 8080 | ✅ | Borda única — roteamento, JWT e rate limit |
 | `order-service` | 8083 | ✅ | Pedidos — criação com outbox e Kafka |
-| `payment-service` | — | 🚧 | não implementado |
+| `payment-service` | 8084 | ✅ | Pagamentos — consumidor Kafka + DLT, Pagar.me |
 | `inventory-service` | — | 🚧 | não implementado |
 | `notification-service` | — | 🚧 | não implementado |
 
@@ -56,6 +56,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    mvn -pl auth-service spring-boot:run
    mvn -pl api-gateway spring-boot:run
    mvn -pl order-service spring-boot:run
+   mvn -pl payment-service spring-boot:run
    ```
 
 ## catalog-service
@@ -120,6 +121,23 @@ Endpoints:
 - `POST /orders` — cria um pedido (`{ "productId": 1, "customerId": "u-1" }`)
 
 Detalhes: o preço vem do `catalog-service` via `CatalogClient` (Feign) com Circuit Breaker `catalog` (fallback: preço ZERO); o evento `OrderCreated` é gravado em `outbox_events` na mesma transação do pedido e publicado pelo `OutboxPublisher` em `orders.events` (chave de partição = orderId).
+
+## payment-service
+
+Dono do domínio de pagamentos. Consome o evento de pedido criado, processa o pagamento na Pagar.me e publica o resultado em outro tópico.
+
+| Banco | Uso |
+|---|---|
+| Postgres `payments` | pagamentos (`payments`) — um por pedido (idempotência) |
+
+Fluxo (mensageria):
+
+- Consome `orders.events` → `OrderCreatedEvent` (grupo `payment-service`)
+- Processa via `PagarMeClient` (cartão de teste fixo) → status `APPROVED` ou `REFUSED`
+- Publica `payments.events` → `PaymentApprovedEvent` ou `PaymentRefusedEvent` (chave = orderId)
+- Retry: `@RetryableTopic` (4 tentativas, backoff 3s × 2); falha definitiva cai em `orders.events-dlt`
+
+Detalhes: idempotência via `orderId` único em `payments`; integração Pagar.me via `RestClient` com `Authorization: Basic` (`PAGARME_API_KEY` no `.env`).
 
 ## Verificação
 
