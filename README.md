@@ -45,7 +45,7 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    docker compose up -d
    ```
 
-   Na primeira subida, o `infra/postgres/init.sql` cria os bancos `catalog`, `auth` e `orders` automaticamente.
+   Na primeira subida, o `infra/postgres/init.sql` cria os bancos `catalog`, `auth`, `orders` e `payments` automaticamente.
 
 3. Suba os serviços (cada um em um terminal):
 
@@ -58,6 +58,16 @@ Pré-requisitos: JDK 21, Docker + Docker Compose, Maven 3.6+.
    mvn -pl order-service spring-boot:run
    mvn -pl payment-service spring-boot:run
    ```
+
+> **Nota (config-server):** o `config-repo/` é um repositório git separado (gitignored pelo repo principal). Numa clonagem nova, inicialize-o:
+>
+> ```bash
+> git -C config-repo init -b main
+> git -C config-repo add .
+> git -C config-repo commit -m "config"
+> ```
+>
+> Sem o `.git`, o `/actuator/health` do config-server fica `DOWN` (`No .git`).
 
 ## catalog-service
 
@@ -138,6 +148,19 @@ Fluxo (mensageria):
 - Retry: `@RetryableTopic` (4 tentativas, backoff 3s × 2); falha definitiva cai em `orders.events-dlt`
 
 Detalhes: idempotência via `orderId` único em `payments`; integração Pagar.me via `RestClient` com `Authorization: Basic` (`PAGARME_API_KEY` no `.env`).
+
+## Swagger e Actuator
+
+**Swagger (springdoc-openapi)** nos 4 serviços de negócio — UI em `/swagger-ui.html`, spec em `/v3/api-docs`:
+
+| Serviço | URL |
+|---|---|
+| catalog-service | http://localhost:8082/swagger-ui.html |
+| order-service | http://localhost:8083/swagger-ui.html |
+| payment-service | http://localhost:8084/swagger-ui.html |
+| auth-service | http://localhost:8081/swagger-ui.html (exige JWT — botão "Authorize") |
+
+**Actuator** em todos os módulos — `/actuator/health`, `/actuator/info`, `/actuator/metrics` (o `config-server` também expõe `/actuator/refresh`). No `auth-service`, o actuator também exige JWT.
 
 ## Verificação
 
